@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 
 -- Variables
 local ChunksFolder = workspace:WaitForChild("Chunks")
+local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
 
 -- Functions
 function Init(player: Player)
@@ -31,3 +32,7 @@ Players.PlayerAdded:Connect(function(player: Player)
 
     Init(player)
 end)
+
+remotesFolder.StartRun.OnServerInvoke = function()
+    return true -- Placeholder
+end

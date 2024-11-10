@@ -28,8 +28,6 @@ return function(player: Player)
     }
 
     function Path:GenerateChunk(chunkName: string?): Instance
-        warn("Generating chunk: " .. chunkName)
-
         local chunk;
 
         -- Obtain chunk by name or randomly
