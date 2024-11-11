@@ -24,30 +24,46 @@ local doJump = false
 
 local runningSpeed = 40
 local runningSpeedTransitionTime = 7
-local jumpPower = 65
+local jumpPower = 50
 
+local introCameraFOV = 20
 local baseCameraFOV = 50
-local baseCameraOffsetCFrame =  CFrame.new(40, 6, -20) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
-local cameraShakeOffsetValue = Instance.new("NumberValue")
-local cameraFOVOffsetValue = Instance.new("NumberValue")
+local baseCameraOffsetCFrame = CFrame.new(40, 6, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
 
 -- Functions
 function StartRun(args)
     if runHasStarted then
         return
     end
-
-    -- Start run
-    assert(remotesFolder.StartRun:InvokeServer(), "Failed to start run")
+    assert(remotesFolder.StartRun:InvokeServer(), "Failed to start run on server")
     
+    -- Start run
+    TweenService:Create(homeScreenGui.Background, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        Position = UDim2.new(0, 0, -1, 0)
+    }):Play()
+
+    task.wait(3)
+
     homeScreenGui.Enabled = false
     runHasStarted = true
     localHumanoid.WalkSpeed = 2
-    TweenService:Create(localHumanoid, TweenInfo.new(runningSpeedTransitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
-        WalkSpeed = runningSpeed
-    }):Play()
     localHumanoid.UseJumpPower = true
     localHumanoid.JumpPower = jumpPower
+
+    -- Intro tweening
+    local tweenInfo = TweenInfo.new(6, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+
+    TweenService:Create(localHumanoid, tweenInfo, {
+        WalkSpeed = runningSpeed
+    }):Play()
+
+    TweenService:Create(localRootPart:WaitForChild("CamPos"), tweenInfo, {
+        CFrame = baseCameraOffsetCFrame * CFrame.new(20, 0, 0)
+    }):Play()
+
+    TweenService:Create(localCamera, tweenInfo, {
+        FieldOfView = baseCameraFOV
+    }):Play()
 end
 
 function IsAlive()
@@ -59,7 +75,7 @@ StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
-homeScreenGui.StartButton.Activated:Connect(StartRun)
+homeScreenGui.Background.Buttons.PlayButton.Activated:Once(StartRun)
 homeScreenGui.Enabled = true
 
 if UserInputService.TouchEnabled then
@@ -87,7 +103,7 @@ end
 
 localHumanoid.WalkSpeed = 0
 localCamera.CameraType = Enum.CameraType.Scriptable
-localCamera.FieldOfView = baseCameraFOV
+localCamera.FieldOfView = introCameraFOV
 
 RunService.RenderStepped:Connect(function()
     if not IsAlive() then return end
@@ -105,29 +121,6 @@ RunService.RenderStepped:Connect(function()
 
     -- Camera
     do
-        localCamera.CFrame = CFrame.new(localRootPart.Position) * baseCameraOffsetCFrame * CFrame.Angles(0, 0, math.rad(cameraShakeOffsetValue.Value))
-        localCamera.FieldOfView = baseCameraFOV + cameraFOVOffsetValue.Value
-    end
-end)
-
--- Camera shake and fov offset
-task.spawn(function()
-    cameraShakeOffsetValue.Value = 0
-    cameraFOVOffsetValue.Value = localCamera.FieldOfView
-
-    while IsAlive() do
-        local duration = math.random(200, 700) / 1000
-        
-        -- Shake camera
-        TweenService:Create(cameraShakeOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Value = math.random(-500, 500) / 1000
-        }):Play()
-
-        -- Change fov
-        TweenService:Create(cameraFOVOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Value = math.random(-500, 500) / 1000
-        }):Play()
-
-        task.wait(duration)
+        localCamera.CFrame = localRootPart:WaitForChild("CamPos").WorldCFrame
     end
 end)

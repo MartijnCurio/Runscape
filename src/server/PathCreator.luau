@@ -121,6 +121,15 @@ return function(player: Player)
         self:SetBiome(newBiome)
     end
 
+    function Path:GeneratePathAsPlayerMoves()
+        local extendPathConnection; extendPathConnection = RunService.Heartbeat:Connect(function()
+            self:CheckExtendPath()
+        end)
+    
+        player.CharacterRemoving:Connect(function() extendPathConnection:Disconnect() end)
+        player.Character.Humanoid.Died:Connect(function() extendPathConnection:Disconnect() end)
+    end
+
     function Path:Init()
         -- Generate spawn platform
         local spawnChunk = self:GenerateChunk(chunksFolder.Plains.SpawnPlatform)
@@ -134,15 +143,12 @@ return function(player: Player)
 
         -- Teleport player to spawn platform
         player.Character:PivotTo(spawnPoint.CFrame)
-    end
 
-    function Path:GeneratePathAsPlayerMoves()
-        local extendPathConnection; extendPathConnection = RunService.Heartbeat:Connect(function()
-            self:CheckExtendPath()
-        end)
-    
-        player.CharacterRemoving:Connect(function() extendPathConnection:Disconnect() end)
-        player.Character.Humanoid.Died:Connect(function() extendPathConnection:Disconnect() end)
+        for _, attachment in next, spawnPoint:GetChildren() do
+            if attachment:IsA("Attachment") then
+                attachment:Clone().Parent = player.Character.PrimaryPart
+            end
+        end
     end
 
     -- Add path as player moves
