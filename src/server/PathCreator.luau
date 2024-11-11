@@ -4,48 +4,40 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- Variables
-local CurrentChunksFolder = workspace:WaitForChild("CurrentChunks")
-local ChunksFolder = ReplicatedStorage:WaitForChild("Chunks")
+local currentChunksFolder = workspace:WaitForChild("CurrentChunks")
+local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
+
+local Biomes = require(script.Parent:WaitForChild("Biomes"))
 
 -- Main
 return function(player: Player)
     local Path = {
         Const = {
-            ChunksAhead = 3,
-            ChunksBehind = 3,
-            BiomeNames = {
-                "Plains",
-                "Desert",
-                "Snowy"
-            },
-            ChunkIgnoreList = {
-                "SpawnPlatform"
-            }
+            ChunksAhead = 5,
+            ChunksBehind = 5,
+            BiomeChangeChance = 20
         },
-        Biome = "Plains",
+        Biome = Biomes.Biomes.Plains,
         Chunks = {},
-        ChunkID = 0
+        ChunkID = 0,
+        BiomeChunkCount = 0
     }
 
-    function Path:GenerateChunk(chunkName: string?): Instance
+    function Path:GenerateChunk(selectedChunk: Instance?): Instance
         local chunk;
 
-        -- Obtain chunk by name or randomly
-        if chunkName == nil then
-            -- Change biome
-            if math.random(1, 1) == 1 then
-                self.Biome = self.Const.BiomeNames[math.random(1, #self.Const.BiomeNames)]
-            end
+        if selectedChunk == nil then
+            -- Check change biome
+            self:CheckChangeBiome()
+            self.BiomeChunkCount += 1
 
-            warn("Biome: " .. self.Biome)
-
-            local biomeFolder = ChunksFolder:FindFirstChild(self.Biome)
-            assert(biomeFolder, "Biome folder not found")
+            local biomeFolder = chunksFolder:FindFirstChild(self.Biome.Name)
+            assert(biomeFolder ~= nil, "Biome folder not found")
             
             -- Populate chunks table
             local chunks = {}
             for _, chunk in next, biomeFolder:GetChildren() do
-                if not table.find(self.Const.ChunkIgnoreList, chunk.Name) then
+                if not table.find(self.Biome.IgnoreList, chunk.Name) then
                     table.insert(chunks, chunk)
                 end
             end
@@ -54,13 +46,12 @@ return function(player: Player)
             -- Get random chunk
             chunk = chunks[math.random(1, #chunks)]:Clone()
         else
-            -- Get chunk by name
-            chunk = ChunksFolder:FindFirstChild(chunkName, true):Clone()
+            chunk = selectedChunk:Clone()
         end
-        assert(chunk, "Chunk not found")
-        
+        assert(chunk ~= nil, "Chunk not found")
+
         -- Position chunk
-        local currentChunks = CurrentChunksFolder:GetChildren()
+        local currentChunks = currentChunksFolder:GetChildren()
         if #currentChunks > 0 then
             local lastChunk = currentChunks[#currentChunks]
             local lastChunkEnd = lastChunk:WaitForChild("ChunkEnd")
@@ -69,23 +60,24 @@ return function(player: Player)
         else
             chunk:PivotTo(CFrame.new())
         end
-        
+
         -- Parent and store chunk
         chunk.Name = self.ChunkID
-        chunk.Parent = CurrentChunksFolder        
-        table.insert(self.Chunks, chunk)
+        chunk.Parent = currentChunksFolder
 
+        table.insert(self.Chunks, chunk)
         self.ChunkID += 1
 
         -- Remove chunk if too many
         if #self.Chunks > (self.Const.ChunksAhead + self.Const.ChunksBehind + 1) then
-            self:RemoveChunk()
+            self:RemoveLastChunk()
         end
 
+        -- Return chunk
         return chunk
     end
-
-    function Path:RemoveChunk()
+    
+    function Path:RemoveLastChunk()
         assert(#self.Chunks > 0, "No chunks to remove")
 
         self.Chunks[1]:Destroy()
@@ -105,9 +97,33 @@ return function(player: Player)
         end
     end
 
+    function Path:SetBiome(biome: any)
+        self.Biome = biome
+        self.BiomeChunkCount = 0
+
+        warn("New biome: " .. biome.Name)
+    end
+
+    function Path:CheckChangeBiome()
+        if self.BiomeChunkCount < self.Biome.Const.MinChunkAmount or math.random(0, 100) > self.Const.BiomeChangeChance then
+            return
+        end
+
+        local biomes = {}
+        for _, biome in next, Biomes.Biomes do
+            if biome ~= self.Biome then
+                biomes[#biomes + 1] = biome
+            end
+        end
+        assert(#biomes > 0, "No biomes to change to")
+
+        local newBiome = biomes[math.random(1, #biomes)]
+        self:SetBiome(newBiome)
+    end
+
     function Path:Init()
         -- Generate spawn platform
-        local spawnChunk = self:GenerateChunk("SpawnPlatform")
+        local spawnChunk = self:GenerateChunk(chunksFolder.Plains.SpawnPlatform)
 
         -- Generate initial chunks
         for _ = 1, self.Const.ChunksAhead do

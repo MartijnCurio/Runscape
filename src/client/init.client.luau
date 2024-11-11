@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
 
 -- Variables
 local localPlayer = Players.LocalPlayer
@@ -22,9 +23,11 @@ local runHasStarted = false
 local doJump = false
 
 local runningSpeed = 40
+local runningSpeedTransitionTime = 7
+local jumpPower = 65
 
 local baseCameraFOV = 50
-local baseCameraOffsetCFrame =  CFrame.new(35, 6, -16) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
+local baseCameraOffsetCFrame =  CFrame.new(40, 6, -20) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
 local cameraShakeOffsetValue = Instance.new("NumberValue")
 local cameraFOVOffsetValue = Instance.new("NumberValue")
 
@@ -39,7 +42,12 @@ function StartRun(args)
     
     homeScreenGui.Enabled = false
     runHasStarted = true
-    localHumanoid.WalkSpeed = runningSpeed
+    localHumanoid.WalkSpeed = 2
+    TweenService:Create(localHumanoid, TweenInfo.new(runningSpeedTransitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        WalkSpeed = runningSpeed
+    }):Play()
+    localHumanoid.UseJumpPower = true
+    localHumanoid.JumpPower = jumpPower
 end
 
 function IsAlive()
@@ -47,6 +55,10 @@ function IsAlive()
 end
 
 -- Main
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+
 homeScreenGui.StartButton.Activated:Connect(StartRun)
 homeScreenGui.Enabled = true
 
@@ -100,19 +112,19 @@ end)
 
 -- Camera shake and fov offset
 task.spawn(function()
-    cameraShakeOffsetValue.Value = localCamera.CFrame
+    cameraShakeOffsetValue.Value = 0
     cameraFOVOffsetValue.Value = localCamera.FieldOfView
 
     while IsAlive() do
         local duration = math.random(200, 700) / 1000
         
         -- Shake camera
-        TweenService:Create(cameraShakeOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine), {
+        TweenService:Create(cameraShakeOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
             Value = math.random(-500, 500) / 1000
         }):Play()
 
         -- Change fov
-        TweenService:Create(cameraFOVOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine), {
+        TweenService:Create(cameraFOVOffsetValue, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
             Value = math.random(-500, 500) / 1000
         }):Play()
 
