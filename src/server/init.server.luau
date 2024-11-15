@@ -25,10 +25,26 @@ Players.PlayerAdded:Connect(function(player: Player)
         local Path = require(script:WaitForChild("PathCreator"))(player)
         Path:Init()
 
-        -- Handle death
-        character:WaitForChild("Humanoid").Died:Connect(function()
+        -- Handle path destroy
+        player.CharacterRemoving:Connect(function()
             Path:Destroy()
         end)
+
+        -- Ragdoll on Death
+        local humanoid = character:WaitForChild("Humanoid")
+        do
+            ReplicatedStorage.KillPlayer.Event:Connect(function(plr)
+                if plr ~= player or not plr.Character then return end
+
+                -- Ragdoll
+                local motors = Ragdoll.CreateJoints(plr.Character)
+                Ragdoll.SetMotorsEnabled(motors, true)
+                Ragdoll.Ragdoll(plr.Character)
+
+                -- Kill
+                humanoid.Health = 0
+            end)
+        end
     end)
 end)
 

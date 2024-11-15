@@ -26,11 +26,11 @@ local enableControls = false
 local doJump = false
 
 local runningSpeed = 40
-local runningSpeedTransitionTime = 7
+local runningSpeedTransitionTime = 6
 local jumpPower = 60
 
-local introCameraFOV = 120 -- 20
-local baseCameraFOV = 120 -- 50
+local introCameraFOV = 20
+local baseCameraFOV = 50
 local baseCameraOffsetCFrame = CFrame.new(40, 6, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
 
 local Connections = {}
@@ -61,7 +61,7 @@ function StartRun(args)
     localHumanoid.JumpPower = jumpPower
 
     -- Intro tweening
-    local tweenInfo = TweenInfo.new(6, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+    local tweenInfo = TweenInfo.new(runningSpeedTransitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
 
     TweenService:Create(localHumanoid, tweenInfo, {
         WalkSpeed = runningSpeed
@@ -125,7 +125,7 @@ end
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-StarterGui:SetCore("ResetButtonCallback", false)
+-- StarterGui:SetCore("ResetButtonCallback", false)
 
 homeScreenGui.Enabled = true
 mainUI.Death.Visible = false

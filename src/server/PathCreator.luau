@@ -9,6 +9,7 @@ local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 
 local Biomes = require(script.Parent:WaitForChild("Biomes"))
+local Behaviors = require(script.Parent:WaitForChild("Behaviors"))
 
 local studsToMetersFactor = 0.28
 
@@ -55,6 +56,13 @@ return function(player: Player)
         end
         assert(chunk ~= nil, "Chunk not found")
 
+        -- Hide base elements
+        for _, basepart in next, chunk:GetChildren() do
+            if basepart:IsA("BasePart") and basepart.Name:find("Base") then
+                basepart.Transparency = 1
+            end
+        end
+
         -- Position chunk
         local currentChunks = currentChunksFolder:GetChildren()
         if #currentChunks > 0 then
@@ -65,10 +73,15 @@ return function(player: Player)
             chunk:PivotTo(CFrame.new())
         end
 
-        -- Hide base elements
-        for _, basepart in next, chunk:GetChildren() do
-            if basepart:IsA("BasePart") and basepart.Name:find("Base") then
-                basepart.Transparency = 1
+        -- Handle behaviors
+        for _, basePart in next, chunk:GetDescendants() do
+            if basePart:IsA("BasePart") and basePart:GetAttribute("Behavior") ~= nil then
+            
+                local callback = Behaviors[basePart:GetAttribute("Behavior")]
+                if callback then
+                    callback(basePart)
+                end
+
             end
         end
         
