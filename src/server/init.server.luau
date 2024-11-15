@@ -4,35 +4,34 @@ local Players = game:GetService("Players")
 
 -- Variables
 local ChunksFolder = workspace:WaitForChild("Chunks")
-local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
 
--- Functions
-function Init(player: Player)
-    -- Destroy Baseplate
-    if workspace:FindFirstChild("Baseplate") then
-        workspace.Baseplate:Destroy()
-    end
-    -- Destroy SpawnLocation
-    if workspace:FindFirstChild("SpawnLocation") then
-        workspace.SpawnLocation:Destroy()
-    end
-
-    -- Initialize Path
-    local Path = require(script:WaitForChild("PathCreator"))(player)
-    Path:Init()
-end
+local Ragdoll = require(ReplicatedStorage:WaitForChild("Ragdoll"))
 
 -- Main
+if workspace:FindFirstChild("Baseplate") then
+    -- Destroy Baseplate
+    workspace.Baseplate:Destroy()
+end
+if workspace:FindFirstChild("SpawnLocation") then
+    -- Destroy SpawnLocation
+    workspace.SpawnLocation:Destroy()
+end
+
 ChunksFolder.Parent = ReplicatedStorage
 
 Players.PlayerAdded:Connect(function(player: Player)
-    player.CharacterAppearanceLoaded:Wait()
-    
-    -- All players loaded (placeholder)
+    player.CharacterAdded:Connect(function(character: Model)
+        -- Initialize Path
+        local Path = require(script:WaitForChild("PathCreator"))(player)
+        Path:Init()
 
-    Init(player)
+        -- Handle death
+        character:WaitForChild("Humanoid").Died:Connect(function()
+            Path:Destroy()
+        end)
+    end)
 end)
 
-remotesFolder.StartRun.OnServerInvoke = function()
-    return true -- Placeholder
+ReplicatedStorage.Respawn.OnServerInvoke = function(player: Player)
+    player:LoadCharacter()
 end

@@ -6,15 +6,18 @@ local RunService = game:GetService("RunService")
 -- Variables
 local currentChunksFolder = workspace:WaitForChild("CurrentChunks")
 local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
+local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 
 local Biomes = require(script.Parent:WaitForChild("Biomes"))
+
+local studsToMetersFactor = 0.28
 
 -- Main
 return function(player: Player)
     local Path = {
         Const = {
-            ChunksAhead = 5,
-            ChunksBehind = 5,
+            ChunksAhead = 3,
+            ChunksBehind = 3,
             BiomeChangeChance = 20
         },
         Biome = Biomes.Biomes.Plains,
@@ -22,6 +25,8 @@ return function(player: Player)
         ChunkID = 0,
         BiomeChunkCount = 0
     }
+
+    local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(player)
 
     function Path:GenerateChunk(selectedChunk: Instance?): Instance
         local chunk;
@@ -54,13 +59,19 @@ return function(player: Player)
         local currentChunks = currentChunksFolder:GetChildren()
         if #currentChunks > 0 then
             local lastChunk = currentChunks[#currentChunks]
-            local lastChunkEnd = lastChunk:WaitForChild("ChunkEnd")
-            local finalCFrame = lastChunkEnd.CFrame
-            chunk:PivotTo(finalCFrame)
+            local baseEnd = lastChunk:WaitForChild("BaseEnd")
+            chunk:PivotTo(baseEnd.CFrame)
         else
             chunk:PivotTo(CFrame.new())
         end
 
+        -- Hide base elements
+        for _, basepart in next, chunk:GetChildren() do
+            if basepart:IsA("BasePart") and basepart.Name:find("Base") then
+                basepart.Transparency = 1
+            end
+        end
+        
         -- Parent and store chunk
         chunk.Name = self.ChunkID
         chunk.Parent = currentChunksFolder
@@ -78,21 +89,30 @@ return function(player: Player)
     end
     
     function Path:RemoveLastChunk()
-        assert(#self.Chunks > 0, "No chunks to remove")
+        if #self.Chunks < 1 then return end
 
         self.Chunks[1]:Destroy()
         table.remove(self.Chunks, 1)
     end
 
+    function Path:CloseOtherBranches()
+        -- TODO: Implement
+    end
+
     function Path:CheckExtendPath()
         local chunk = self.Chunks[#self.Chunks - self.Const.ChunksAhead + 1]
-        assert(chunk, "No chunk to check")
 
-        local chunkStart = chunk:WaitForChild("ChunkStart")
-        local shouldExtend = player.Character.PrimaryPart.Position.Z < chunkStart.Position.Z
+        if not chunk then
+            return
+        end
+
+        local baseStart = chunk:WaitForChild("BaseStart")
+        local shouldExtend = player.Character.PrimaryPart.Position.Z < baseStart.Position.Z
 
         if shouldExtend then
-            warn("Extending path")
+            local chunk = self.Chunks[#self.Chunks - self.Const.ChunksAhead + 1]
+            assert(chunk, "Last chunk not found")
+
             self:GenerateChunk()
         end
     end
@@ -100,7 +120,6 @@ return function(player: Player)
     function Path:SetBiome(biome: any)
         self.Biome = biome
         self.BiomeChunkCount = 0
-
         warn("New biome: " .. biome.Name)
     end
 
@@ -109,6 +128,7 @@ return function(player: Player)
             return
         end
 
+        -- Get unique biomes
         local biomes = {}
         for _, biome in next, Biomes.Biomes do
             if biome ~= self.Biome then
@@ -117,6 +137,7 @@ return function(player: Player)
         end
         assert(#biomes > 0, "No biomes to change to")
 
+        -- Change biome
         local newBiome = biomes[math.random(1, #biomes)]
         self:SetBiome(newBiome)
     end
@@ -128,6 +149,16 @@ return function(player: Player)
     
         player.CharacterRemoving:Connect(function() extendPathConnection:Disconnect() end)
         player.Character.Humanoid.Died:Connect(function() extendPathConnection:Disconnect() end)
+    end
+
+    function Path:TrackPlayerDistance(origin: Vector3)
+        local trackDistanceConnection; trackDistanceConnection = RunService.Heartbeat:Connect(function()
+            local distance = (player.Character.PrimaryPart.Position - origin).Magnitude * studsToMetersFactor
+            PlayerModule:SetStat("Distance", distance)
+        end)
+    
+        player.CharacterRemoving:Connect(function() trackDistanceConnection:Disconnect() end)
+        player.Character.Humanoid.Died:Connect(function() trackDistanceConnection:Disconnect() end)
     end
 
     function Path:Init()
@@ -149,9 +180,19 @@ return function(player: Player)
                 attachment:Clone().Parent = player.Character.PrimaryPart
             end
         end
+
+        -- Track player distance
+        self:TrackPlayerDistance(spawnPoint.Position)
     end
 
-    -- Add path as player moves
+    function Path:Destroy()
+        for _, chunk in next, self.Chunks do
+            chunk:Destroy()
+        end
+    end
+
+    -- Initialization
+    PlayerModule:InitializeStats()
     Path:GeneratePathAsPlayerMoves()
 
     return Path
