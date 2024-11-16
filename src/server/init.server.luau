@@ -32,19 +32,18 @@ Players.PlayerAdded:Connect(function(player: Player)
 
         -- Ragdoll on Death
         local humanoid = character:WaitForChild("Humanoid")
-        do
-            ReplicatedStorage.KillPlayer.Event:Connect(function(plr)
-                if plr ~= player or not plr.Character then return end
+        
+        ReplicatedStorage.KillPlayer.Event:Connect(function(plr)
+            if plr ~= player or not plr.Character then return end
 
-                -- Ragdoll
-                local motors = Ragdoll.CreateJoints(plr.Character)
-                Ragdoll.SetMotorsEnabled(motors, true)
-                Ragdoll.Ragdoll(plr.Character)
+            -- Ragdoll
+            local motors = Ragdoll.CreateJoints(plr.Character)
+            Ragdoll.SetMotorsEnabled(motors, true)
+            Ragdoll.Ragdoll(plr.Character)
 
-                -- Kill
-                humanoid.Health = 0
-            end)
-        end
+            -- Kill
+            humanoid.Health = 0
+        end)
     end)
 end)
 

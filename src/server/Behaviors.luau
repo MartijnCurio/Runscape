@@ -2,21 +2,30 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Ragdoll = require(ReplicatedStorage:WaitForChild("Ragdoll"))
+
+-- Functions
+local function getPlayerFromHitPart(hit: BasePart)
+    for _, plr in next, Players:GetPlayers() do
+        if plr.Character and hit:IsDescendantOf(plr.Character) then
+            return plr
+        end
+    end
+end
+
 -- Main
 return {
     TouchKill = function(hitbox: BasePart)
         hitbox.Touched:Connect(function(hit: BasePart)
             -- Get player from hit part
-            for _, plr in next, Players:GetPlayers() do
-                if plr.Character and hit:IsDescendantOf(plr.Character) then
-                    local humanoid = plr.Character:FindFirstChild("Humanoid")
+            local plr = getPlayerFromHitPart(hit)
 
-                    if humanoid and humanoid.Health > 0 then
-                        -- Kill player
-                        ReplicatedStorage.KillPlayer:Fire(plr)
-                    end
+            if plr and plr.Character then
+                local humanoid = plr.Character:FindFirstChild("Humanoid")
 
-                    break
+                if humanoid and humanoid.Health > 0 then
+                    -- Kill player
+                    ReplicatedStorage.KillPlayer:Fire(plr)
                 end
             end
         end)
@@ -26,23 +35,41 @@ return {
 
         hitbox.Touched:Connect(function(hit: BasePart)
             -- Get player from hit part
-            for _, plr in next, Players:GetPlayers() do
-                if plr.Character and hit:IsDescendantOf(plr.Character) and not debounce then
-                    debounce = true
+            local plr = getPlayerFromHitPart(hit)
 
-                    local humanoid = plr.Character:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
-                        local oldJumpPower = humanoid.JumpPower
+            if plr and plr.Character and not debounce then
+                debounce = true
 
-                        humanoid.JumpPower = 100
+                local humanoid = plr.Character:FindFirstChild("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local oldJumpPower = humanoid.JumpPower
 
-                        task.delay(1, function()
-                            humanoid.JumpPower = oldJumpPower
-                            debounce = false
-                        end)
-                    end
+                    humanoid.JumpPower = 100
 
-                    break
+                    task.delay(1, function()
+                        humanoid.JumpPower = oldJumpPower
+                        debounce = false
+                    end)
+                end
+            end
+        end)
+    end,
+    Zombie = function(hitbox: BasePart)
+        local zombie = hitbox.Parent
+        local zombieHumanoid = zombie:FindFirstChild("Humanoid")
+
+        if zombieHumanoid.Health <= 0 then return end
+
+        hitbox.Touched:Connect(function(hit: BasePart)
+            -- Get player from hit part
+            local plr = getPlayerFromHitPart(hit)
+
+            if plr and plr.Character then
+                local humanoid = plr.Character:FindFirstChild("Humanoid")
+
+                if humanoid and humanoid.Health > 0 then
+                    -- Kill player
+                    ReplicatedStorage.KillPlayer:Fire(plr)
                 end
             end
         end)

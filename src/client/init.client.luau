@@ -182,6 +182,12 @@ Connections.Died = localHumanoid.Died:Connect(function()
         connection:Disconnect()
     end
 
+    -- Tween camera to focus player
+    TweenService:Create(localCamera, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        CFrame = CFrame.lookAt((localRootPart.CFrame * baseCameraOffsetCFrame).Position, localRootPart.Position),
+        FieldOfView = introCameraFOV
+    }):Play()
+
     -- Game over
     GameOver()
 end)
