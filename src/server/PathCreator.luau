@@ -21,7 +21,7 @@ return function(player: Player)
             ChunksBehind = 3,
             BiomeChangeChance = 20
         },
-        Biome = Biomes.Biomes.Plains,
+        Biome = Biomes.Biomes[Biomes.KeyNames[math.random(1, #Biomes.KeyNames)]],
         Chunks = {},
         ChunkID = 0,
         BiomeChunkCount = 0
