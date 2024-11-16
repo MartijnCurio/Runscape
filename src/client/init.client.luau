@@ -13,6 +13,7 @@ local localCharacter = localPlayer.Character or localPlayer.CharacterAdded:Wait(
 local localHumanoid = localCharacter:WaitForChild("Humanoid")
 local localRootPart = localCharacter:WaitForChild("HumanoidRootPart")
 local localCamera = workspace.CurrentCamera
+local backgroundMusicFolder = workspace:WaitForChild("BackgroundMusic")
 
 local localPlayerGui = localPlayer:WaitForChild("PlayerGui")
 local homeScreenGui = localPlayerGui:WaitForChild("HomeScreen")
@@ -24,10 +25,9 @@ local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(localPla
 local runHasStarted = false
 local enableControls = false
 local doJump = false
+local stopBackgroundMusicLoop = false
 
-local runningSpeed = 40
 local runningSpeedTransitionTime = 6
-local jumpPower = 60
 
 local introCameraFOV = 20
 local baseCameraFOV = 50
@@ -58,13 +58,16 @@ function StartRun(args)
     homeScreenGui.Enabled = false
     localHumanoid.WalkSpeed = 2
     localHumanoid.UseJumpPower = true
-    localHumanoid.JumpPower = jumpPower
+    localHumanoid.JumpPower = localHumanoid:GetAttribute("BaseJumpPower")
+
+    -- Start background music loop
+    task.spawn(StartBackgroundMusicLoop, backgroundMusicFolder.BackgroundStart)
 
     -- Intro tweening
     local tweenInfo = TweenInfo.new(runningSpeedTransitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
 
     TweenService:Create(localHumanoid, tweenInfo, {
-        WalkSpeed = runningSpeed
+        WalkSpeed = localHumanoid:GetAttribute("BaseWalkSpeed")
     }):Play()
 
     TweenService:Create(localRootPart:WaitForChild("CamPos"), tweenInfo, {
@@ -114,6 +117,31 @@ function GameOver()
             RequestRespawn()
         end
     end)
+end
+
+function StartBackgroundMusicLoop(sound: Sound?)
+    local selectedSound = sound
+    if not selectedSound then
+        selectedSound = backgroundMusicFolder:GetChildren()[math.random(1, #backgroundMusicFolder:GetChildren())]
+    end
+
+    local tweenInfo = TweenInfo.new(6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+
+    selectedSound.Volume = 0
+    selectedSound:Play()
+    TweenService:Create(selectedSound, tweenInfo, { Volume = 0.375 }):Play()
+
+    repeat RunService.RenderStepped:Wait() until stopBackgroundMusicLoop or selectedSound.TimePosition >= (selectedSound.TimeLength - tweenInfo.Time)
+
+    TweenService:Create(selectedSound, tweenInfo, { Volume = 0 }):Play()
+
+    if stopBackgroundMusicLoop then
+        return
+    end
+
+    task.wait(tweenInfo.Time)
+
+    StartBackgroundMusicLoop()
 end
 
 function RequestRespawn()
@@ -182,8 +210,11 @@ Connections.Died = localHumanoid.Died:Connect(function()
         connection:Disconnect()
     end
 
+    -- Fade out background music
+    stopBackgroundMusicLoop = true
+
     -- Tween camera to focus player
-    TweenService:Create(localCamera, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+    TweenService:Create(localCamera, TweenInfo.new(7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
         CFrame = CFrame.lookAt((localRootPart.CFrame * baseCameraOffsetCFrame).Position, localRootPart.Position),
         FieldOfView = introCameraFOV
     }):Play()
