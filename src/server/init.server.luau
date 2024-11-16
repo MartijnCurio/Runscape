@@ -21,6 +21,12 @@ ChunksFolder.Parent = ReplicatedStorage
 
 Players.PlayerAdded:Connect(function(player: Player)
     player.CharacterAdded:Connect(function(character: Model)
+        local humanoid = character:WaitForChild("Humanoid")
+
+        -- Set base attributes
+        humanoid:SetAttribute("BaseWalkSpeed", 40)
+        humanoid:SetAttribute("BaseJumpPower", 60)
+        
         -- Initialize Path
         local Path = require(script:WaitForChild("PathCreator"))(player)
         Path:Init()
@@ -31,8 +37,6 @@ Players.PlayerAdded:Connect(function(player: Player)
         end)
 
         -- Ragdoll on Death
-        local humanoid = character:WaitForChild("Humanoid")
-        
         ReplicatedStorage.KillPlayer.Event:Connect(function(plr)
             if plr ~= player or not plr.Character then return end
 
