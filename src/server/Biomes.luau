@@ -14,11 +14,10 @@ for _, biomeName in next, Biomes.KeyNames do
         Const = {
             MinChunkAmount = 10
         },
-        IgnoreList = {}
+        IgnoreList = {
+            "SpawnPlatform"
+        }
     }
 end
-
--- Add biome specific ignore lists
-table.insert(Biomes.Biomes.Plains.IgnoreList, "SpawnPlatform")
 
 return Biomes

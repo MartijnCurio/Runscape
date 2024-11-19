@@ -95,5 +95,36 @@ return {
                 end
             end
         end)
-    end
+    end,
+    IceBreak = function(hitbox: BasePart)
+        local iceBreak = hitbox.Parent
+        local ice = iceBreak.Ice
+        local water = iceBreak.Water
+
+        local broken = false
+
+        hitbox.Touched:Connect(function(hit: BasePart)
+            if broken then return end -- Ice is already broken
+
+            local plr = getPlayerFromHitPart(hit)
+            if not plr then return end
+            
+            -- Break ice
+            broken = true
+            hitbox.Cracking:Play()
+
+            task.wait(0.25)
+
+            ice:Destroy()
+
+            -- Water touch event
+            water.Touched:Connect(function(waterHit: BasePart)
+                local waterPlr = getPlayerFromHitPart(waterHit)
+                if waterPlr and waterPlr == plr then
+                    ReplicatedStorage.KillPlayer:Fire(plr)
+                    hitbox.Splash:Play()
+                end
+            end)
+        end)
+    end,
 }
