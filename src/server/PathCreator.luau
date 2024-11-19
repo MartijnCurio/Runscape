@@ -176,7 +176,7 @@ return function(player: Player)
 
     function Path:Init()
         -- Generate spawn platform
-        local spawnChunk = self:GenerateChunk(chunksFolder.Plains.SpawnPlatform)
+        local spawnChunk = self:GenerateChunk(chunksFolder[self.Biome.Name].SpawnPlatform)
 
         -- Generate initial chunks
         for _ = 1, self.Const.ChunksAhead do
