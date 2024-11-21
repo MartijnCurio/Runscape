@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 -- Variables
 local currentChunksFolder = workspace:WaitForChild("CurrentChunks")
 local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
+local obstaclesFolder = ReplicatedStorage:WaitForChild("Obstacles")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 
 local Biomes = require(script.Parent:WaitForChild("Biomes"))
@@ -72,16 +73,29 @@ return function(player: Player)
         else
             chunk:PivotTo(CFrame.new())
         end
+        
+        -- Dynamically add obstacles
+        local chunkObstaclesFolder = chunk:FindFirstChild("Obstacles")
+        if chunkObstaclesFolder then
+            for _, obstacleSpawn in next, chunkObstaclesFolder:GetChildren() do
+                obstacleSpawn.Transparency = 1
 
-        -- Handle behaviors
-        for _, basePart in next, chunk:GetDescendants() do
-            if basePart:IsA("BasePart") and basePart:GetAttribute("Behavior") ~= nil then
-            
-                local callback = Behaviors[basePart:GetAttribute("Behavior")]
+                local obstacle = obstaclesFolder:FindFirstChild(obstacleSpawn.Name)
+                if not obstacle then continue end
+    
+                -- Spawn obstacle
+                obstacle = obstacle:Clone()
+                obstacle:PivotTo(obstacleSpawn.CFrame)
+                obstacle.Parent = chunkObstaclesFolder
+
+                -- Handle hitbox
+                local hitbox = obstacle:FindFirstChild("Hitbox", true)
+                if not hitbox or not hitbox:GetAttribute("Behavior") then continue end
+
+                local callback = Behaviors[hitbox:GetAttribute("Behavior")]
                 if callback then
-                    callback(basePart)
+                    callback(hitbox)
                 end
-
             end
         end
         

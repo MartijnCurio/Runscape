@@ -3,8 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 -- Variables
-local ChunksFolder = workspace:WaitForChild("Chunks")
-
 local Ragdoll = require(ReplicatedStorage:WaitForChild("Ragdoll"))
 
 -- Main
@@ -17,7 +15,8 @@ if workspace:FindFirstChild("SpawnLocation") then
     workspace.SpawnLocation:Destroy()
 end
 
-ChunksFolder.Parent = ReplicatedStorage
+workspace:WaitForChild("Chunks").Parent = ReplicatedStorage
+workspace:WaitForChild("Obstacles").Parent = ReplicatedStorage
 
 Players.PlayerAdded:Connect(function(player: Player)
     player.CharacterAdded:Connect(function(character: Model)
