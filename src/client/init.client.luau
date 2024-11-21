@@ -33,7 +33,11 @@ local introCameraFOV = 20
 local baseCameraFOV = 50
 local baseCameraOffsetCFrame = CFrame.new(40, 6, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
 
+local jumpAnimation = script:WaitForChild("JumpAnim")
+local jumpTrack = localHumanoid:LoadAnimation(jumpAnimation)
+
 local Connections = {}
+local Tweens = {}
 
 -- Functions
 function StartRun(args)
@@ -114,6 +118,17 @@ function GameOver()
         -- Check if keyboad key or gamepad button was pressed
         if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.Gamepad1 then
             inputBegan:Disconnect()
+
+            -- Disconnect all active connections (again)
+            for _, connection in next, Connections do
+                connection:Disconnect()
+            end
+            -- Cancel all tweens
+            for _, tween in next, Tweens do
+                tween:Cancel()
+            end
+
+            -- Request a respawn from the server
             RequestRespawn()
         end
     end)
@@ -214,11 +229,21 @@ Connections.Died = localHumanoid.Died:Connect(function()
     stopBackgroundMusicLoop = true
 
     -- Tween camera to focus player
-    TweenService:Create(localCamera, TweenInfo.new(7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+    Tweens.CameraDeathPan = TweenService:Create(localCamera, TweenInfo.new(7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
         CFrame = CFrame.lookAt((localRootPart.CFrame * baseCameraOffsetCFrame).Position, localRootPart.Position),
         FieldOfView = introCameraFOV
     }):Play()
 
     -- Game over
     GameOver()
+end)
+
+localHumanoid.StateChanged:Connect(function(oldState, newState)
+    if newState == Enum.HumanoidStateType.Jumping then
+        jumpTrack:Play()
+        jumpTrack:AdjustSpeed(1 / 16 * localHumanoid:GetAttribute("BaseWalkSpeed") * 0.75)
+
+    elseif newState == Enum.HumanoidStateType.Landed then
+        jumpTrack:Stop()
+    end
 end)

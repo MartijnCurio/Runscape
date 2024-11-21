@@ -87,14 +87,19 @@ return function(player: Player)
                 obstacle = obstacle:Clone()
                 obstacle:PivotTo(obstacleSpawn.CFrame)
                 obstacle.Parent = chunkObstaclesFolder
+            end
+        end
 
-                -- Handle hitbox
-                local hitbox = obstacle:FindFirstChild("Hitbox", true)
-                if not hitbox or not hitbox:GetAttribute("Behavior") then continue end
+        -- Handle obstacle hitboxes
+        for _, hitbox in next, chunk:GetDescendants() do
+            if hitbox:IsA("BasePart") and hitbox.Name == "Hitbox" then
+                local behavior = hitbox:GetAttribute("Behavior")
 
-                local callback = Behaviors[hitbox:GetAttribute("Behavior")]
-                if callback then
-                    callback(hitbox)
+                if behavior then
+                    local callback = Behaviors[hitbox:GetAttribute("Behavior")]
+                    if callback then
+                        callback(hitbox)
+                    end
                 end
             end
         end

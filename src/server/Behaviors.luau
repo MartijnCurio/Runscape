@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Ragdoll = require(ReplicatedStorage:WaitForChild("Ragdoll"))
 
 -- Functions
-local function getPlayerFromHitPart(hit: BasePart)
+local function getPlayerFromHitPart(hit: BasePart): Player?
     for _, plr in next, Players:GetPlayers() do
         if plr.Character and hit:IsDescendantOf(plr.Character) then
             return plr

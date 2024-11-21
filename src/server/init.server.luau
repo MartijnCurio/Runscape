@@ -24,7 +24,7 @@ Players.PlayerAdded:Connect(function(player: Player)
 
         -- Set base attributes
         humanoid:SetAttribute("BaseWalkSpeed", 40)
-        humanoid:SetAttribute("BaseJumpPower", 60)
+        humanoid:SetAttribute("BaseJumpPower", 65)
         
         -- Initialize Path
         local Path = require(script:WaitForChild("PathCreator"))(player)
