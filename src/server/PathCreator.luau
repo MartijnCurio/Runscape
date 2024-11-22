@@ -31,7 +31,7 @@ return function(player: Player)
 
     local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(player)
 
-    function Path:GenerateChunk(selectedChunk: Instance?): Instance
+    function Path:GenerateChunk(selectedChunk: Model?): Model
         local chunk;
 
         if selectedChunk == nil then
@@ -189,6 +189,9 @@ return function(player: Player)
         -- Change biome
         local newBiome = biomes[math.random(1, #biomes)]
         self:SetBiome(newBiome)
+
+        -- Generate biome transition chunk
+        self:GenerateChunk(chunksFolder.Universal.BiomeTransition)
     end
 
     function Path:GeneratePathAsPlayerMoves()
