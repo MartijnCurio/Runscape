@@ -41,10 +41,7 @@ end
 workspace:WaitForChild("Chunks").Parent = ReplicatedStorage
 workspace:WaitForChild("Obstacles").Parent = ReplicatedStorage
 
-Players.PlayerAdded:Connect(function(player: Player)
-    player.CharacterAdded:Wait()
-    Init(player)
-end)
+Players.PlayerAdded:Connect(Init)
 
 ReplicatedStorage.Respawn.OnServerInvoke = function(player: Player)
     player:LoadCharacter()

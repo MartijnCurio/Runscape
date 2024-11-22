@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local currentChunksFolder = workspace:WaitForChild("CurrentChunks")
 local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
 local obstaclesFolder = ReplicatedStorage:WaitForChild("Obstacles")
+local propsFolder = ReplicatedStorage:WaitForChild("Props")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 
 local Biomes = require(script.Parent:WaitForChild("Biomes"))
@@ -72,6 +73,22 @@ return function(player: Player)
             chunk:PivotTo(baseEnd.CFrame)
         else
             chunk:PivotTo(CFrame.new())
+        end
+
+        -- Dynamically populate coins
+        local chunkCoinsFolder = chunk:FindFirstChild("Coins")
+        if chunkCoinsFolder then
+            for _, coinSpawn in next, chunkCoinsFolder:GetChildren() do
+                coinSpawn.Transparency = 1
+
+                local chance = coinSpawn:GetAttribute("Chance") or 100
+                if math.random(1, 100) <= chance then
+                    local coin = propsFolder.Coin:Clone()
+                    coin.Position = coinSpawn.Position
+                    coin.AlignPosition.Position = coin.Position
+                    coin.Parent = chunkCoinsFolder
+                end
+            end
         end
         
         -- Dynamically add obstacles

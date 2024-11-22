@@ -240,6 +240,7 @@ end)
 
 localHumanoid.StateChanged:Connect(function(oldState, newState)
     if newState == Enum.HumanoidStateType.Jumping then
+        script.JumpSound:Play()
         jumpTrack:Play()
         jumpTrack:AdjustSpeed(1 / 16 * localHumanoid:GetAttribute("BaseWalkSpeed") * 0.75)
 

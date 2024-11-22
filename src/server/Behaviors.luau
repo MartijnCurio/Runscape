@@ -44,7 +44,7 @@ return {
                 if humanoid and humanoid.Health > 0 then
                     humanoid.JumpPower = 100
 
-                    task.delay(1, function()
+                    task.delay(0.5, function()
                         humanoid.JumpPower = humanoid:GetAttribute("BaseJumpPower")
                         debounce = false
                     end)
