@@ -19,6 +19,7 @@ local localPlayerGui = localPlayer:WaitForChild("PlayerGui")
 local homeScreenGui = localPlayerGui:WaitForChild("HomeScreen")
 local mainUI = localPlayerGui:WaitForChild("MainUI")
 
+local assetsFolder = ReplicatedStorage:WaitForChild("Assets")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(localPlayer)
 
@@ -33,7 +34,8 @@ local introCameraFOV = 20
 local baseCameraFOV = 50
 local baseCameraOffsetCFrame = CFrame.new(40, 6, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(-7.5), 0, 0)
 
-local jumpAnimation = script:WaitForChild("JumpAnim")
+local jumpAnimation = assetsFolder:WaitForChild("JumpFlip"):Clone()
+local jumpSound = assetsFolder:WaitForChild("JumpSound"):Clone()
 local jumpTrack = localHumanoid:LoadAnimation(jumpAnimation)
 
 local Connections = {}
@@ -47,12 +49,14 @@ function StartRun(args)
     
     runHasStarted = true
     
-    -- Start run
-    PlayerModule:OnStatChanged("Distance", function(value)
-        if not PlayerModule:IsAlive() then return end
-        mainUI.DistanceLabel.Text = math.floor(value) .. "m"
+    -- Track leaderstats
+    local leaderstats = localPlayer:FindFirstChild("leaderstats")
+
+    leaderstats:WaitForChild("Distance"):GetPropertyChangedSignal("Value"):Connect(function()
+        mainUI.DistanceLabel.Text = math.floor(leaderstats.Distance.Value).. "m"
     end)
 
+    -- Start run
     TweenService:Create(homeScreenGui.Background, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
         Position = UDim2.new(0, 0, -1, 0)
     }):Play()
@@ -93,17 +97,18 @@ function StartRun(args)
 end
 
 function GameOver()
-    local stats = PlayerModule:GetStats()
-
+    local leaderstats = localPlayer:FindFirstChild("leaderstats")
     local statsHolder = mainUI.Death:WaitForChild("Statistics")
 
+    statsHolder.Visible = false -- TESTING : TO DO IMPLEMENTATION
+
     -- Display stats
-    for name, value in next, stats do
+    for _, stat in next, leaderstats:GetChildren() do
         local template = statsHolder.Template:Clone()
         template.Visible = true
-        template.Name = name
-        template.Stat.Text = name
-        template.Value.Text = math.floor(value)
+        template.Name = stat.Name
+        template.Stat.Text = stat.Name
+        template.Value.Text = math.floor(stat.Value)
         template.Parent = statsHolder
     end
 
@@ -165,10 +170,14 @@ function RequestRespawn()
 end
 
 -- Main
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
--- StarterGui:SetCore("ResetButtonCallback", false)
+task.delay(0.5, function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+    StarterGui:SetCore("ResetButtonCallback", false)
+end)
+
+jumpSound.Parent = script
 
 homeScreenGui.Enabled = true
 mainUI.Death.Visible = false
@@ -240,7 +249,7 @@ end)
 
 localHumanoid.StateChanged:Connect(function(oldState, newState)
     if newState == Enum.HumanoidStateType.Jumping then
-        script.JumpSound:Play()
+        jumpSound:Play()
         jumpTrack:Play()
         jumpTrack:AdjustSpeed(1 / 16 * localHumanoid:GetAttribute("BaseWalkSpeed") * 0.75)
 

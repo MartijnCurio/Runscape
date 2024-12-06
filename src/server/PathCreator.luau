@@ -21,7 +21,7 @@ return function(player: Player)
         Const = {
             ChunksAhead = 3,
             ChunksBehind = 3,
-            BiomeChangeChance = 20
+            BiomeChangeChance = 10
         },
         Biome = Biomes.Biomes[Biomes.KeyNames[math.random(1, #Biomes.KeyNames)]],
         Chunks = {},
@@ -87,6 +87,10 @@ return function(player: Player)
                     coin.Position = coinSpawn.Position
                     coin.AlignPosition.Position = coin.Position
                     coin.Parent = chunkCoinsFolder
+
+                    -- Copy behavior
+                    coin:SetAttribute("Behavior", coinSpawn:GetAttribute("Behavior"))
+                    coinSpawn:SetAttribute("Behavior", nil)
                 end
             end
         end
@@ -109,7 +113,7 @@ return function(player: Player)
 
         -- Handle obstacle hitboxes
         for _, hitbox in next, chunk:GetDescendants() do
-            if hitbox:IsA("BasePart") and hitbox.Name == "Hitbox" then
+            if hitbox:IsA("BasePart") then
                 local behavior = hitbox:GetAttribute("Behavior")
 
                 if behavior then
@@ -204,13 +208,33 @@ return function(player: Player)
     end
 
     function Path:TrackPlayerDistance(origin: Vector3)
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if not leaderstats then
+            warn("Leaderstats not found")
+            return
+        end
+
         local trackDistanceConnection; trackDistanceConnection = RunService.Heartbeat:Connect(function()
-            local distance = (player.Character.PrimaryPart.Position - origin).Magnitude * studsToMetersFactor
-            PlayerModule:SetStat("Distance", distance)
+            -- Calculate horizontal distance
+            local playerPos = player.Character.PrimaryPart.Position
+            local distance = math.max(0, (Vector3.new(0, 0, playerPos.Z) - Vector3.new(0, 0, origin.Z)).Magnitude * studsToMetersFactor)
+
+            -- Update distance
+            leaderstats.Distance.Value = distance
+
+            -- Update highscore
+            if distance > leaderstats.Highscore.Value then
+                leaderstats.Highscore.Value = distance
+            end
         end)
     
         player.CharacterRemoving:Connect(function() trackDistanceConnection:Disconnect() end)
-        player.Character.Humanoid.Died:Connect(function() trackDistanceConnection:Disconnect() end)
+        player.Character.Humanoid.Died:Connect(function()
+            trackDistanceConnection:Disconnect()
+        
+            -- Update deaths
+            leaderstats.Deaths.Value += 1
+        end)
     end
 
     function Path:Init()

@@ -12,7 +12,7 @@ for _, biomeName in next, Biomes.KeyNames do
     Biomes.Biomes[biomeName] = {
         Name = biomeName,
         Const = {
-            MinChunkAmount = 10
+            MinChunkAmount = 20
         },
         IgnoreList = {
             "SpawnPlatform"

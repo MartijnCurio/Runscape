@@ -50,33 +50,6 @@ return function(player: Player): PlayerModule
         end
         return true
     end
-    
-    function PlayerModule:GetStats(): { [string]: number }
-        local stats = {}
-
-        if self.Character then
-            local statsFolder = self.Character:FindFirstChild("Stats")
-            if statsFolder then
-                for _, stat in next, statsFolder:GetChildren() do
-                    stats[stat.Name] = stat.Value
-                end
-            end
-        end
-
-        return stats
-    end
-
-    function PlayerModule:SetStat(name: string, value: number)
-        if self.Character then
-            local statsFolder = self.Character:FindFirstChild("Stats")
-            if statsFolder then
-                local stat = statsFolder:FindFirstChild(name)
-                if stat then
-                    stat.Value = value
-                end
-            end
-        end
-    end
 
     player.CharacterAdded:Connect(function(character)
         PlayerModule.Character = character

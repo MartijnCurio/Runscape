@@ -127,4 +127,19 @@ return {
             end)
         end)
     end,
+    Coin = function(hitbox: BasePart)
+        hitbox.Touched:Connect(function(hit: BasePart)
+            if hitbox:GetAttribute("Collected") then return end
+
+            local plr = getPlayerFromHitPart(hit)
+            if plr then
+                -- Set collected
+                hitbox:SetAttribute("Collected", true)
+                hitbox.Transparency = 1
+
+                -- Add coin to player
+                plr.leaderstats.Coins.Value += 1
+            end
+        end)
+    end
 }
