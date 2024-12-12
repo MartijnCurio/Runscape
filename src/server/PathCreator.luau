@@ -92,6 +92,8 @@ return function(player: Player)
                     coin:SetAttribute("Behavior", coinSpawn:GetAttribute("Behavior"))
                     coinSpawn:SetAttribute("Behavior", nil)
                 end
+
+                coinSpawn:Destroy()
             end
         end
         
@@ -154,7 +156,6 @@ return function(player: Player)
 
     function Path:CheckExtendPath()
         local chunk = self.Chunks[#self.Chunks - self.Const.ChunksAhead + 1]
-
         if not chunk then
             return
         end
@@ -166,6 +167,12 @@ return function(player: Player)
             local chunk = self.Chunks[#self.Chunks - self.Const.ChunksAhead + 1]
             assert(chunk, "Last chunk not found")
 
+            -- Spawn shop
+            if math.random(1, 1) == 1 then
+                self:GenerateUpgradeShop()
+            end
+
+            -- Extend path with new chunk
             self:GenerateChunk()
         end
     end
@@ -195,7 +202,7 @@ return function(player: Player)
         self:SetBiome(newBiome)
 
         -- Generate biome transition chunk
-        self:GenerateChunk(chunksFolder.Universal.BiomeTransition)
+        -- self:GenerateChunk(chunksFolder.Universal.BiomeTransition)
     end
 
     function Path:GeneratePathAsPlayerMoves()
@@ -261,6 +268,20 @@ return function(player: Player)
         self:TrackPlayerDistance(spawnPoint.Position)
     end
 
+    function Path:GenerateUpgradeShop()
+        local shopChunk = self:GenerateChunk(chunksFolder.Universal.UpgradeShop)
+        local partsFolder = shopChunk:WaitForChild("Parts")
+        local stopPart = partsFolder:WaitForChild("StopPart")
+
+        -- Detect player touch to stop
+        local stopTouched; stopTouched = stopPart.Touched:Connect(function(hit)
+            if hit:IsA("BasePart") and hit.Parent == player.Character then
+                stopTouched:Disconnect()
+                ReplicatedStorage.ToggleShop:FireClient(player, true)
+            end
+        end)
+    end
+
     function Path:Destroy()
         for _, chunk in next, self.Chunks do
             chunk:Destroy()
@@ -268,7 +289,6 @@ return function(player: Player)
     end
 
     -- Initialization
-    PlayerModule:InitializeStats()
     Path:GeneratePathAsPlayerMoves()
 
     return Path
