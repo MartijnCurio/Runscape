@@ -15,6 +15,7 @@ local PlayerData = {}
 
 -- Variables
 local Ragdoll = require(ReplicatedStorage:WaitForChild("Ragdoll"))
+local UpgradesModule = require(ReplicatedStorage:WaitForChild("Upgrades"))
 
 -- Functions
 function Init(player: Player)
@@ -24,6 +25,7 @@ function Init(player: Player)
     -- Set base attributes
     humanoid:SetAttribute("BaseWalkSpeed", 40)
     humanoid:SetAttribute("BaseJumpPower", 65)
+    humanoid:SetAttribute("DoubleJump", false)
     
     -- Initialize Path
     local Path = require(script:WaitForChild("PathCreator"))(player)
@@ -94,6 +96,9 @@ Players.PlayerAdded:Connect(function(player: Player)
 
     -- Wait for player to load character
     player.CharacterAdded:Connect(function()
+        -- Reset coins
+        player.leaderstats.Coins.Value = 0
+
         Init(player)
     end)
 end)
@@ -121,4 +126,26 @@ end
 
 ReplicatedStorage.SetPlayerData.OnInvoke = function(userId: number, data: any)
     PlayerData[userId] = data
+end
+
+ReplicatedStorage.BuyUpgrade.OnServerInvoke = function(player: Player, upgradeKey: string)
+    -- Get selected upgrade
+    local selectedUpgrade = UpgradesModule[upgradeKey]
+    if not selectedUpgrade then return end
+
+    -- Get player coins
+    local leaderstats = player:WaitForChild("leaderstats")
+    local coins = leaderstats:WaitForChild("Coins")
+
+    -- Check if player has enough coins
+    if coins.Value < selectedUpgrade.Cost then return end
+
+    -- Check if upgrade can stack
+    if not selectedUpgrade.CanStack and player.Backpack:FindFirstChild(upgradeKey) then return end
+
+    -- Apply upgrade effect and check if successful
+    if selectedUpgrade.Callback(player) then
+        -- Subtract coins
+        coins.Value -= selectedUpgrade.Cost
+    end
 end

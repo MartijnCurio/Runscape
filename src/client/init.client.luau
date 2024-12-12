@@ -19,16 +19,22 @@ local localPlayerGui = localPlayer:WaitForChild("PlayerGui")
 local homeScreenGui = localPlayerGui:WaitForChild("HomeScreen")
 local mainUI = localPlayerGui:WaitForChild("MainUI")
 
+local shopFrame = mainUI:WaitForChild("ShopFrame")
+local upgradesList = shopFrame:WaitForChild("UpgradesList")
+
 local assetsFolder = ReplicatedStorage:WaitForChild("Assets")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
 local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(localPlayer)
+local upgradesModule = require(ReplicatedStorage:WaitForChild("Upgrades"))
 
 local runHasStarted = false
 local enableControls = false
 local doJump = false
 local stopBackgroundMusicLoop = false
+local doubleJumpActive = true
 
-local runningSpeedTransitionTime = 6
+local isRunning = false
+local runningSpeedTransitionTime = 5
 
 local introCameraFOV = 20
 local baseCameraFOV = 50
@@ -68,6 +74,9 @@ function StartRun(args)
     localHumanoid.UseJumpPower = true
     localHumanoid.JumpPower = localHumanoid:GetAttribute("BaseJumpPower")
 
+    enableControls = true
+    isRunning = true
+
     -- Start background music loop
     task.spawn(StartBackgroundMusicLoop, backgroundMusicFolder.BackgroundStart)
 
@@ -89,7 +98,17 @@ function StartRun(args)
     task.wait(6)
 
     -- Enable controls
-    enableControls = true
+    localHumanoid:GetAttributeChangedSignal("BaseWalkSpeed"):Connect(function()
+        if not isRunning then return end
+        localHumanoid.WalkSpeed = localHumanoid:GetAttribute("BaseWalkSpeed")
+    end)
+    localHumanoid:GetAttributeChangedSignal("BaseJumpPower"):Connect(function()
+        if not isRunning then return end
+        localHumanoid.JumpPower = localHumanoid:GetAttribute("BaseJumpPower")
+    end)
+    localHumanoid.Landed:Connect(function()
+        warn("fakka met die landing")
+    end)
 
     TweenService:Create(mainUI.DistanceLabel, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
         Position = UDim2.new()
@@ -169,6 +188,23 @@ function RequestRespawn()
     ReplicatedStorage.Respawn:InvokeServer()
 end
 
+function HandleShopToggle(state: boolean)
+    -- Toggle shop and running state
+    shopFrame.Visible = state
+    isRunning = not state
+
+    if not runHasStarted then return end
+
+    if state then
+        localHumanoid.WalkSpeed = 0
+    else
+        -- Shop has been closed
+        TweenService:Create(localHumanoid, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+            WalkSpeed = localHumanoid:GetAttribute("BaseWalkSpeed")
+        }):Play()
+    end
+end
+
 -- Main
 task.delay(0.5, function()
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
@@ -182,6 +218,22 @@ jumpSound.Parent = script
 homeScreenGui.Enabled = true
 mainUI.Death.Visible = false
 homeScreenGui:WaitForChild("Background").Buttons.PlayButton.Activated:Once(StartRun)
+
+for key, data in next, upgradesModule do
+    local template = upgradesList.Template:Clone()
+    local inner = template:WaitForChild("Inner")
+
+    template.Visible = true
+    inner.Name = key
+    inner.Title.Text = data.Title
+    inner.Desc.Text = data.Desc
+    inner.Cost.Text = data.Cost
+    inner.Parent = upgradesList
+
+    inner.BuyButton.Activated:Connect(function()
+        ReplicatedStorage.BuyUpgrade:InvokeServer(key)
+    end)
+end
 
 -- Connect player controls
 if UserInputService.TouchEnabled then
@@ -218,7 +270,15 @@ Connections.RenderStepped = RunService.RenderStepped:Connect(function()
 
     -- Controls
     if enableControls and doJump then
-        localHumanoid.Jump = true
+        doJump = false
+        if localHumanoid.FloorMaterial == Enum.Material.Air and localHumanoid:GetAttribute("DoubleJump") and doubleJumpActive then
+            -- Double jump
+            doubleJumpActive = false
+            localHumanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        else
+            -- Normal jump
+            localHumanoid.Jump = true
+        end
     end
 
     -- Move forward
@@ -254,6 +314,13 @@ localHumanoid.StateChanged:Connect(function(oldState, newState)
         jumpTrack:AdjustSpeed(1 / 16 * localHumanoid:GetAttribute("BaseWalkSpeed") * 0.75)
 
     elseif newState == Enum.HumanoidStateType.Landed then
+        doubleJumpActive = true
         jumpTrack:Stop()
     end
 end)
+
+shopFrame.Close.Activated:Connect(function()
+    HandleShopToggle(false)
+end)
+
+ReplicatedStorage:WaitForChild("ToggleShop").OnClientEvent:Connect(HandleShopToggle)
