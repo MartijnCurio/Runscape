@@ -9,6 +9,7 @@ local chunksFolder = ReplicatedStorage:WaitForChild("Chunks")
 local obstaclesFolder = ReplicatedStorage:WaitForChild("Obstacles")
 local propsFolder = ReplicatedStorage:WaitForChild("Props")
 local sharedFolder = ReplicatedStorage:WaitForChild("Shared")
+local assetsFolder = ReplicatedStorage:WaitForChild("Assets")
 
 local Biomes = require(script.Parent:WaitForChild("Biomes"))
 local Behaviors = require(script.Parent:WaitForChild("Behaviors"))
@@ -88,6 +89,8 @@ return function(player: Player)
                     coin.AlignPosition.Position = coin.Position
                     coin.Parent = chunkCoinsFolder
 
+                    assetsFolder.CoinSound:Clone().Parent = coin
+
                     -- Copy behavior
                     coin:SetAttribute("Behavior", coinSpawn:GetAttribute("Behavior"))
                     coinSpawn:SetAttribute("Behavior", nil)
@@ -128,6 +131,8 @@ return function(player: Player)
         end
         
         -- Parent and store chunk
+        local rawName = chunk.Name
+        chunk:SetAttribute("RawName", rawName)
         chunk.Name = self.ChunkID
         chunk.Parent = currentChunksFolder
 
@@ -138,6 +143,9 @@ return function(player: Player)
         if #self.Chunks > (self.Const.ChunksAhead + self.Const.ChunksBehind + 1) then
             self:RemoveLastChunk()
         end
+
+        -- On chunk loaded event
+        ReplicatedStorage.OnChunkLoaded:FireAllClients(rawName, chunk)
 
         -- Return chunk
         return chunk
@@ -168,12 +176,12 @@ return function(player: Player)
             assert(chunk, "Last chunk not found")
 
             -- Spawn shop
-            if math.random(1, 1) == 1 then
+            if math.random(1, 100) == 1 then
                 self:GenerateUpgradeShop()
             end
 
             -- Extend path with new chunk
-            self:GenerateChunk()
+            self:GenerateChunk(chunksFolder.Plains.JumpPad)
         end
     end
 

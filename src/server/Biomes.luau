@@ -2,7 +2,8 @@ local Biomes = {
     KeyNames = {
         "Plains",
         "Desert",
-        "Snowy"
+        "Snowy",
+        "Swamp"
     },
     Biomes = {}
 }

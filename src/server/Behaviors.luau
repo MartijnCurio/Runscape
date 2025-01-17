@@ -137,6 +137,9 @@ return {
                 hitbox:SetAttribute("Collected", true)
                 hitbox.Transparency = 1
 
+                -- Play sound
+                hitbox.CoinSound:Play()
+
                 -- Add coin to player
                 plr.leaderstats.Coins.Value += 1
             end

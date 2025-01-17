@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
 local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
 
@@ -28,8 +27,6 @@ local PlayerModule = require(sharedFolder:WaitForChild("PlayerModule"))(localPla
 local upgradesModule = require(ReplicatedStorage:WaitForChild("Upgrades"))
 
 local runHasStarted = false
-local enableControls = false
-local doJump = false
 local stopBackgroundMusicLoop = false
 local doubleJumpActive = true
 
@@ -74,7 +71,6 @@ function StartRun(args)
     localHumanoid.UseJumpPower = true
     localHumanoid.JumpPower = localHumanoid:GetAttribute("BaseJumpPower")
 
-    enableControls = true
     isRunning = true
 
     -- Start background music loop
@@ -106,9 +102,6 @@ function StartRun(args)
         if not isRunning then return end
         localHumanoid.JumpPower = localHumanoid:GetAttribute("BaseJumpPower")
     end)
-    localHumanoid.Landed:Connect(function()
-        warn("fakka met die landing")
-    end)
 
     TweenService:Create(mainUI.DistanceLabel, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
         Position = UDim2.new()
@@ -137,7 +130,7 @@ function GameOver()
 
     -- Press any key to respawn
     local inputBegan; inputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed then return end
+        if gameProcessed then return end
 
         -- Check if keyboad key or gamepad button was pressed
         if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.Gamepad1 then
@@ -203,6 +196,10 @@ function HandleShopToggle(state: boolean)
             WalkSpeed = localHumanoid:GetAttribute("BaseWalkSpeed")
         }):Play()
     end
+
+    TweenService:Create(localCamera, TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        FieldOfView = state and introCameraFOV or baseCameraFOV
+    }):Play()
 end
 
 -- Main
@@ -235,30 +232,6 @@ for key, data in next, upgradesModule do
     end)
 end
 
--- Connect player controls
-if UserInputService.TouchEnabled then
-    UserInputService.ModalEnabled = true
-    
-    Connections.TouchStarted = UserInputService.TouchStarted:Connect(function(inputObject, gameProcessedEvent)
-        if gameProcessedEvent == false then
-            doJump = true
-        end
-    end)
-
-    Connections.TouchEnded = UserInputService.TouchEnded:Connect(function()
-        doJump = false
-    end)
-else
-    ContextActionService:BindAction(
-        "Jump",
-        function(action, userInputState, inputObject)
-            doJump = (userInputState == Enum.UserInputState.Begin)
-        end,
-        false,
-        Enum.KeyCode.Space, Enum.KeyCode.ButtonA
-    )
-end
-
 -- Set up humanoid and camera
 localHumanoid.WalkSpeed = 0
 localCamera.CameraType = Enum.CameraType.Scriptable
@@ -267,19 +240,6 @@ localCamera.FieldOfView = introCameraFOV
 -- Set up controls and camera update loop
 Connections.RenderStepped = RunService.RenderStepped:Connect(function()
     if not PlayerModule:IsAlive() then return end
-
-    -- Controls
-    if enableControls and doJump then
-        doJump = false
-        if localHumanoid.FloorMaterial == Enum.Material.Air and localHumanoid:GetAttribute("DoubleJump") and doubleJumpActive then
-            -- Double jump
-            doubleJumpActive = false
-            localHumanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        else
-            -- Normal jump
-            localHumanoid.Jump = true
-        end
-    end
 
     -- Move forward
     localHumanoid:Move(Vector3.new(0, 0, -1), false)
@@ -321,6 +281,40 @@ end)
 
 shopFrame.Close.Activated:Connect(function()
     HandleShopToggle(false)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Space
+    and localHumanoid.FloorMaterial == Enum.Material.Air
+    and doubleJumpActive
+    and localHumanoid:GetAttribute("DoubleJump") then
+        doubleJumpActive = false
+        localHumanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+local isFirstJumpPad: boolean = true
+ReplicatedStorage:WaitForChild("OnChunkLoaded").OnClientEvent:Connect(function(rawName: string, chunk: Model)
+    warn(rawName)
+    if isFirstJumpPad then
+        local chunks = workspace.CurrentChunks:GetChildren()
+        table.sort(chunks, function(a, b)
+            return tonumber(a.Name) < tonumber(b.Name)
+        end)
+        for _, c in next, chunks do
+            if c:GetAttribute("RawName") == "JumpPad" then
+                for _, o in next, c:WaitForChild("Obstacles"):GetChildren() do
+                    if o:IsA("Model") and o.Name == "JumpPad" then
+                        isFirstJumpPad = false
+                        o.Gui.Enabled = true
+                        break
+                    end
+                end
+                if not isFirstJumpPad then break end
+            end
+        end
+    end
 end)
 
 ReplicatedStorage:WaitForChild("ToggleShop").OnClientEvent:Connect(HandleShopToggle)
